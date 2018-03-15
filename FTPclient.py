@@ -10,13 +10,13 @@ def passiveConnect(client_socket):
     index_end = response.find(')')
     response = response[index_start + 1:index_end]  # Removes the brackets to the string from PASV
     response = response.split(",")                  # Splits the numbers into an array
-
+    print(response)
     data_host = ''
 
-    for i in range(0, 4):
-        data_host = data_host + (response[i]) + '.'
+    print(data_host)
+    data_host = '.'.join(response[0:4])
 
-    data_host = data_host[:-1]
+    #data_host = data_host[:-1]
     end_response = response[-2:]
     data_port = (int(end_response[0]) * 256) + int(end_response[1])
     data_port = int(data_port)
@@ -56,11 +56,30 @@ def main():
     print("Results of RETR command: " + client_socket.recv(8192).decode())
     file_data = data_socket.recv(8192)
     print("Results of data connection: \n" + file_data.decode())
+    print("Result of RETR Command again: " + client_socket.recv(8192).decode())
 
     with open('testZilla.txt', 'wb') as File:
         File.write(file_data)
         print("File transfer complete")
         File.close()
+
+    data_socket.close()
+
+    client_socket.send('TYPE I\r\n'.encode())
+    print("Results of Type B: " + client_socket.recv(8192).decode())
+    data_socket = passiveConnect(client_socket)
+
+    client_socket.send('RETR 48_hour/1.pdf\r\n'.encode())
+    print("Results of RETR command: " + client_socket.recv(8192).decode())
+
+    file_data = data_socket.recv(8192)
+    f = open("1.pdf", 'wb')
+
+    while (file_data):
+        f.write(file_data)
+        file_data = data_socket.recv(8192)
+
+    print("Results of RETR command again: " + client_socket.recv(8192).decode())
 
     client_socket.close()
     data_socket.close()
