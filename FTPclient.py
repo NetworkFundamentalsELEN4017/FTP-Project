@@ -47,21 +47,46 @@ def main():
     print(data_socket.recv(8192).decode())
     # data_socket.close()
 
+    # Download Binary files
     client_socket.send('TYPE I\r\n'.encode())
     print("Results of Type B: " + client_socket.recv(8192).decode())
     data_socket = passiveConnect(client_socket)
 
-    client_socket.send('RETR /files/ELEN1998.pdf\r\n'.encode())
+    client_socket.send('RETR /files/slav.jpg\r\n'.encode())
     print("Results of RETR command: " + client_socket.recv(8192).decode())
 
     file_data = data_socket.recv(8192)
-    f = open("ELEN1998.pdf", 'wb')
+    f = open("slav.jpg", 'wb')
 
     while file_data:
         f.write(file_data)
         file_data = data_socket.recv(8192)
 
     print("Results of RETR command again: " + client_socket.recv(8192).decode())
+
+    # Upload binary files
+    client_socket.send('TYPE I\r\n'.encode())
+    print("Results of Type B: " + client_socket.recv(8192).decode())
+    data_socket = passiveConnect(client_socket)
+
+    client_socket.send('STOR /files/whale.jpg\r\n'.encode())
+    print("Results of RETR command: " + client_socket.recv(8192).decode())
+
+    pic = open('whale.jpg', 'rb')
+    reading = pic.read(8192)
+
+    while reading:
+        print('reading file')
+        data_socket.send(reading)
+        reading = pic.read(8192)
+
+    print("The file has finished sending to Server")
+
+    pic.close()
+    data_socket.close()
+
+    Reply = client_socket.recv(4096).decode("UTF-8")
+    print('Control connection reply: \n' + str(Reply))
 
     client_socket.close()
     data_socket.close()
