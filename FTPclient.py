@@ -69,10 +69,10 @@ def main():
     print("Results of Type B: " + client_socket.recv(8192).decode())
     data_socket = passiveConnect(client_socket)
 
-    client_socket.send('STOR /files/whale.jpg\r\n'.encode())
+    client_socket.send('STOR /files/Sloth.jpg\r\n'.encode())
     print("Results of RETR command: " + client_socket.recv(8192).decode())
 
-    pic = open('whale.jpg', 'rb')
+    pic = open('Sloth.jpg', 'rb')
     reading = pic.read(8192)
 
     while reading:
@@ -87,6 +87,33 @@ def main():
 
     Reply = client_socket.recv(4096).decode("UTF-8")
     print('Control connection reply: \n' + str(Reply))
+
+    client_socket.send('STRU F\r\n'.encode())
+    print("Results of Stru F: " + client_socket.recv(8192).decode())
+
+    client_socket.send('STRU R\r\n'.encode())
+    print("Results of Stru R: " + client_socket.recv(8192).decode())
+
+    client_socket.send('STRU P\r\n'.encode())
+    print("Results of Stru P: " + client_socket.recv(8192).decode())
+
+    client_socket.send('MODE S\r\n'.encode())
+    print("Results of Mode S: " + client_socket.recv(8192).decode())
+
+    client_socket.send('MODE B\r\n'.encode())
+    print("Results of Mode B: " + client_socket.recv(8192).decode())
+
+    client_socket.send('MODE C\r\n'.encode())
+    print("Results of Mode C: " + client_socket.recv(8192).decode())
+
+    client_socket.send('PORT 146,141,1,91,47,56\r\n'.encode())
+    print("Results of PORT: " + client_socket.recv(8192).decode())
+
+    client_socket.send('NOOP\r\n'.encode())
+    print("Results of Noop: " + client_socket.recv(8192).decode())
+
+    client_socket.send('QUIT\r\n'.encode())
+    print("Results of Quit: " + client_socket.recv(8192).decode())
 
     client_socket.close()
     data_socket.close()
