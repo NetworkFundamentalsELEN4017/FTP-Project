@@ -32,10 +32,10 @@ def main():
     client_socket.connect((host, command_port))
     print(client_socket.recv(8192).decode())
 
-    client_socket.send('USER group18\r\n'.encode())
+    client_socket.send('USER \r\n'.encode())
     print(client_socket.recv(8192).decode())
 
-    client_socket.send('PASS Tee3ho3d\r\n'.encode())
+    client_socket.send('PASS \r\n'.encode())
     print(client_socket.recv(8192).decode())
 
     # Attempt to setup up passive FTP mode and connect data TCP connection
