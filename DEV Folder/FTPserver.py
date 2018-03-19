@@ -12,17 +12,21 @@ def dataEstablish(host, port):
     data_socket.listen(1)
     return data_socket
 
-def Main():
+
+def main():
+
     print(socket.gethostname())
     host = socket.gethostbyname(socket.gethostname())
-    port = 5000
+    port = 5003
 
     command_socket = commandEstablish(host, port)
-    print("Command:",command_socket.getsockname())
+    print("Command:", command_socket.getsockname())
     command_socket.listen(1)
 
     command_connection, command_address = command_socket.accept()
-    print("Command Address:",command_address)
+    print("Command Address:", command_address)
+    reply = '220 Connection Established Successfully, enter username\r\n'.encode()
+    command_connection.send(reply)
 
     while True:
 
@@ -30,7 +34,7 @@ def Main():
         print("From connected client: " + data)
         command = data[:4]
         message = data[5:].strip()
-        '''
+
         if command == "USER":
             if message == "group18":
                 print("Hello", message)
@@ -42,7 +46,7 @@ def Main():
                 command_connection.send("230 Login successful".encode())
             else:
                 command_connection.send("530 Login incorrect".encode())
-        '''
+
         if command == "PASV":
             server_address = socket.gethostbyname(socket.gethostname())
             server_address = server_address.split(".")
@@ -50,7 +54,8 @@ def Main():
             server_address = "("+ server_address + ",30,60)"
             command_connection.send(server_address.encode())
 
-            data_socket = dataEstablish("127.0.1.1",7740)
+            data_port = (30 * 256) + 30
+            data_socket = dataEstablish(host, data_port)
 
         if command == "LIST":
             command_connection.send("150 Listing Directory".encode())
@@ -63,4 +68,4 @@ def Main():
     command_connection.close()
 
 if __name__ == '__main__':
-    Main()
+    main()
