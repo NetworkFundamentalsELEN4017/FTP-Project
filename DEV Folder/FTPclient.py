@@ -23,23 +23,24 @@ def passiveConnect(command_socket):
     data_socket.connect((data_host, data_port))
     return data_socket
 
+
 def main():
 
     host = 'ELEN4017.ug.eie.wits.ac.za'
-    #command_port = 21
-    server_address = socket.gethostbyname(socket.gethostname())
-    command_port = 5000
+    command_port = 21
+    # server_address = socket.gethostbyname(socket.gethostname())
+    # command_port = 5000
 
     command_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    command_socket.connect((server_address, command_port))
+    command_socket.connect((host, command_port))
     print("Command socket set")
-    '''
+
     command_socket.send('USER group18\r\n'.encode())
     print(command_socket.recv(8192).decode())
 
     command_socket.send('PASS Tee3ho3d\r\n'.encode())
     print(command_socket.recv(8192).decode())
-    '''
+
     # Attempt to setup up passive FTP mode and connect data TCP connection
     data_socket = passiveConnect(command_socket)
 
