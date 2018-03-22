@@ -10,6 +10,7 @@ class FTPServer (threading.Thread):
         self.command_connection = connection_socket
         self.address_ip = address_ip
         self.data_connection = None
+        self.type = None
 
     def run(self):
         print("Connection from: ", str(self.address_ip))
@@ -40,8 +41,8 @@ class FTPServer (threading.Thread):
                     print('PASV code')
                     port_number1 = random.randint(47, 234)
                     port_number2 = random.randint(0, 255)
-                    port_number1 = 60
-                    port_number2 = 30
+                    # port_number1 = 60
+                    # port_number2 = 30
                     data_port = (port_number1*256) + port_number2
                     server_address = socket.gethostbyname(socket.gethostname())
                     server_address = server_address.split(".")
@@ -86,15 +87,47 @@ class FTPServer (threading.Thread):
                     print('TYPE code')
                     if argument == 'A':
                         self.command_connection.send('200 ascii mode enabled\r\n'.encode())
+                        self.type = 'A'
                     elif argument == 'I':
                         self.command_connection.send('200 binary mode has been set\r\n'.encode())
+                        self.type = 'I'
 
                 if command == 'SYST':
                     print('SYS code')
                     self.command_connection.send("215 MAC \r\n".encode())
 
                 if command == 'RETR':
-                    print("RETR commmand received")
+                    data_sock, data_address = data_connection.accept()
+                    filename = argument
+
+                    if self.type == 'A':
+
+                        file = open(filename, 'r')
+                        reading = file.read(8192)
+
+                        while reading:
+                            print('reading file')
+                            data_sock.send((reading + '\r\n').encode())
+                            reading = file.read(8192)
+
+                        file.close()
+                        data_sock.close()
+                        self.command_connection.send('226 file transfer completed \r\n'.encode())
+                        # should I close the data_connection
+
+                    elif self.type == 'I':
+                        file = open(filename, 'rb')
+                        reading = file.read(8192)
+
+                        while reading:
+                            print('reading file')
+                            data_sock.send(reading)
+                            reading = file.read(8192)
+
+                        file.close()
+                        data_sock.close()
+                        self.command_connection.send('226 file transfer completed \r\n'.encode())
+                        # should I close the data_connection
 
             elif command not in commands_available:
                 self.command_connection.send("502 Command not implemented \r\n".encode())
