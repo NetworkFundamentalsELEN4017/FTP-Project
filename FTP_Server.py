@@ -13,6 +13,7 @@ class FTPServer (threading.Thread):
         self.data_connection = None
         self.type = None
         self.isConnectionTerminated = False
+        self.isActiveMode = None
 
     def run(self):
         print("Connection from: ", str(self.address_ip))
@@ -20,7 +21,7 @@ class FTPServer (threading.Thread):
 
         while True:
             commands_available = ['USER', 'PASS', 'PASV', 'LIST', 'PWD', 'CWD', 'TYPE', 'SYST', 'RETR', 'STOR', 'NOOP',
-                                  'QUIT']
+                                  'QUIT', 'PORT']
 
             if self.isConnectionTerminated:
                 break
@@ -56,6 +57,7 @@ class FTPServer (threading.Thread):
 
     def PASV(self):
         print('PASV code')
+        self.isActiveMode = False
         port_number1 = random.randint(47, 234)
         port_number2 = random.randint(0, 255)
         # port_number1 = 60
@@ -69,16 +71,38 @@ class FTPServer (threading.Thread):
         self.data_connection = self.data_establish(host, data_port)
         self.command_connection.send(("227 Entering passive mode" + str(server_address) + '\r\n').encode())
 
+    def PORT(self, argument):
+        print('PORT function has been called')
+        self.isActiveMode = True
+        argument = argument.split(',')
+        data_host = '.'.join(argument[0:4])
+        port_number = argument[-2:]
+        data_port = (int(port_number[0]) * 256) + int(port_number[1])
+        data_port = int(data_port)
+        print("Data Host: %s" % data_host)
+        print('Data Port: %d' % data_port)
+        self.data_connection = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        self.data_connection.connect((data_host, data_port))
+        self.command_connection.send(("227 Entering Active mode \r\n").encode())
+
     def LIST(self):
         print('List code')
         self.command_connection.send("150 List is here\r\n".encode())
-        data_sock, data_address = self.data_connection.accept()
+
+        if not self.isActiveMode:
+            data_sock, data_address = self.data_connection.accept()
+
         directory_list = os.listdir(os.getcwd())
         for item in directory_list:
             print('sending: ' + str(item))
-            data_sock.sendall((str(item) + '\r\n').encode())
+            if not self.isActiveMode:
+                data_sock.sendall((str(item) + '\r\n').encode())
+            else:
+                self.data_connection.sendall((str(item) + '\r\n').encode())
+
         self.command_connection.send('226 List is done transferring\r\n'.encode())
-        data_sock.close()
+        if not self.isActiveMode:
+            data_sock.close()
         self.data_connection.close()
 
     def PWD(self):
@@ -111,7 +135,8 @@ class FTPServer (threading.Thread):
 
     def RETR(self, argument):
         self.command_connection.send('150 File status okay; about to open data connection.\r\n'.encode())
-        data_sock, data_address = self.data_connection.accept()
+        if not self.isActiveMode:
+            data_sock, data_address = self.data_connection.accept()
         filename = argument
         if self.type == 'A':
             file = open(filename, 'r')
@@ -119,11 +144,15 @@ class FTPServer (threading.Thread):
 
             while reading:
                 print('reading file')
-                data_sock.send((reading + '\r\n').encode())
+                if not self.isActiveMode:
+                    data_sock.send((reading + '\r\n').encode())
+                else:
+                    self.data_connection.send((reading + '\r\n').encode())
                 reading = file.read(8192)
 
             file.close()
-            data_sock.close()
+            if not self.isActiveMode:
+                data_sock.close()
             self.data_connection.close()
             self.command_connection.send('226 file transfer completed \r\n'.encode())
             # should I close the data_connection
@@ -134,51 +163,70 @@ class FTPServer (threading.Thread):
 
             while reading:
                 print('reading file')
-                data_sock.send(reading)
+                if not self.isActiveMode:
+                    data_sock.send(reading)
+                else:
+                    self.data_connection.send(reading)
+
                 reading = file.read(8192)
 
             file.close()
-            data_sock.close()
+            if not self.isActiveMode:
+                data_sock.close()
             self.data_connection.close()
             self.command_connection.send('226 file transfer completed \r\n'.encode())
             # should I close the data_connection
 
     def STOR(self, argument):
         self.command_connection.send('150 File status okay; about to open data connection.\r\n'.encode())
-        data_sock, data_address = self.data_connection.accept()
+        if not self.isActiveMode:
+            data_sock, data_address = self.data_connection.accept()
         filename = argument
         if self.type == 'A':
             file = open(filename, 'w')
-            file_data = data_sock.recv(8192).decode()
+            if not self.isActiveMode:
+                file_data = data_sock.recv(8192).decode()
+            else:
+                file_data = self.data_connection.recv(8192).decode()
 
             while file_data:
                 print('writing file')
                 file.write(file_data)
-                file_data = data_sock.recv(8192).decode()
+                if not self.isActiveMode:
+                    file_data = data_sock.recv(8192).decode()
+                else:
+                    file_data = self.data_connection.recv(8192).decode()
 
             file.close()
-            data_sock.close()
+            if not self.isActiveMode:
+                data_sock.close()
             self.data_connection.close()
             self.command_connection.send('226 file transfer completed \r\n'.encode())
             # should I close the data_connection
 
         elif self.type == 'I':
             file = open(filename, 'wb')
-            file_data = data_sock.recv(8192)
+            if not self.isActiveMode:
+                file_data = data_sock.recv(8192)
+            else:
+                file_data = self.data_connection.recv(8192)
 
             while file_data:
                 print('writing file')
                 file.write(file_data)
-                file_data = data_sock.recv(8192)
+                if not self.isActiveMode:
+                    file_data = data_sock.recv(8192)
+                else:
+                    file_data = self.data_connection.recv(8192)
 
             file.close()
-            data_sock.close()
+            if not self.isActiveMode:
+                data_sock.close()
             self.data_connection.close()
             self.command_connection.send('226 file transfer completed \r\n'.encode())
             # should I close the data_connection
 
             file.close()
-            data_sock.close()
 
     def NOOP(self):
         self.command_connection.send('200 NOOP OK \r\n'.encode())
@@ -198,7 +246,7 @@ class FTPServer (threading.Thread):
 def main():
     # Local Machine IP
     host = socket.gethostbyname(socket.gethostname())
-    port = 5002
+    port = 5000
 
     server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     server_socket.bind((host, port))
