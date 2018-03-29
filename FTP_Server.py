@@ -21,7 +21,7 @@ class FTPServer (threading.Thread):
 
         while True:
             commands_available = ['USER', 'PASS', 'PASV', 'LIST', 'PWD', 'CWD', 'TYPE', 'SYST', 'RETR', 'STOR', 'NOOP',
-                                  'QUIT', 'PORT']
+                                  'QUIT', 'PORT', 'DELE', 'MKD', 'RMD']
 
             if self.isConnectionTerminated:
                 break
@@ -231,6 +231,33 @@ class FTPServer (threading.Thread):
     def NOOP(self):
         self.command_connection.send('200 NOOP OK \r\n'.encode())
 
+    def DELE(self, argument):
+        file_name = argument
+        file_path = os.path.join(os.getcwd(), file_name)
+        if os.path.exists(file_path):
+            os.remove(file_path)
+            self.command_connection.send('250 The requested file has been deleted\r\n'.encode())
+        else:
+            self.command_connection.send('550 Could not execute delete, file not found\r\n'.encode())
+
+    def MKD(self, argument):
+        directory_name = argument
+        directory_path = os.path.join(os.getcwd(), directory_name)
+        if os.path.exists(directory_path):
+            self.command_connection.send('550 Directory could not be created\r\n'.encode())
+        else:
+            os.makedirs(directory_path)
+            self.command_connection.send('257 Folder has been successfully created\r\n'.encode())
+
+    def RMD(self, argument):
+        directory_name = argument
+        directory_path = os.path.join(os.getcwd(), directory_name)
+        if os.path.exists(directory_name):
+            os.rmdir(directory_path)
+            self.command_connection.send('257 The requested folder, has been deleted \r\n'.encode())
+        else:
+            self.command_connection.send('550 Could not find folder\r\n'.encode())
+
     def QUIT(self):
             self.command_connection.send('221 Goodbye\r\n'.encode())
             self.command_connection.close()
@@ -246,7 +273,7 @@ class FTPServer (threading.Thread):
 def main():
     # Local Machine IP
     host = socket.gethostbyname(socket.gethostname())
-    port = 5000
+    port = 5001
 
     server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     server_socket.bind((host, port))
