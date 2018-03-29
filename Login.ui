@@ -51,7 +51,7 @@
      </rect>
     </property>
     <property name="text">
-     <string>ftp.uconn.edu</string>
+     <string>127.0.1.1</string>
     </property>
    </widget>
    <widget class="QLabel" name="lblPass">
@@ -82,7 +82,7 @@
      </rect>
     </property>
     <property name="text">
-     <string>anonymous</string>
+     <string>group18</string>
     </property>
    </widget>
    <widget class="QLineEdit" name="edtPass">
@@ -98,7 +98,7 @@
      <string/>
     </property>
     <property name="text">
-     <string>anonymous@</string>
+     <string>dan</string>
     </property>
    </widget>
    <widget class="QLabel" name="lblHost">
@@ -169,7 +169,7 @@
      </rect>
     </property>
     <property name="text">
-     <string>21</string>
+     <string>5001</string>
     </property>
    </widget>
    <widget class="QLabel" name="lblUser">
@@ -217,9 +217,9 @@
    <property name="geometry">
     <rect>
      <x>10</x>
-     <y>330</y>
-     <width>531</width>
-     <height>81</height>
+     <y>370</y>
+     <width>111</width>
+     <height>31</height>
     </rect>
    </property>
    <property name="text">
@@ -232,42 +232,20 @@
      <x>549</x>
      <y>330</y>
      <width>531</width>
-     <height>81</height>
+     <height>71</height>
     </rect>
    </property>
    <property name="text">
     <string>Download</string>
    </property>
   </widget>
-  <widget class="QTreeView" name="treeViewDown">
-   <property name="geometry">
-    <rect>
-     <x>550</x>
-     <y>10</y>
-     <width>530</width>
-     <height>311</height>
-    </rect>
-   </property>
-   <property name="horizontalScrollBarPolicy">
-    <enum>Qt::ScrollBarAlwaysOff</enum>
-   </property>
-   <property name="horizontalScrollMode">
-    <enum>QAbstractItemView::ScrollPerItem</enum>
-   </property>
-   <property name="rootIsDecorated">
-    <bool>false</bool>
-   </property>
-   <property name="allColumnsShowFocus">
-    <bool>false</bool>
-   </property>
-  </widget>
   <widget class="QPlainTextEdit" name="pteConsole">
    <property name="geometry">
     <rect>
      <x>10</x>
-     <y>420</y>
+     <y>410</y>
      <width>1071</width>
-     <height>141</height>
+     <height>151</height>
     </rect>
    </property>
    <property name="readOnly">
@@ -277,12 +255,61 @@
     <string/>
    </property>
   </widget>
+  <widget class="QPlainTextEdit" name="pteDownload">
+   <property name="geometry">
+    <rect>
+     <x>550</x>
+     <y>10</y>
+     <width>531</width>
+     <height>311</height>
+    </rect>
+   </property>
+  </widget>
+  <widget class="QPushButton" name="btnDirectory">
+   <property name="geometry">
+    <rect>
+     <x>10</x>
+     <y>330</y>
+     <width>111</width>
+     <height>31</height>
+    </rect>
+   </property>
+   <property name="text">
+    <string>Change CWD</string>
+   </property>
+  </widget>
+  <widget class="QLineEdit" name="edtDirectory">
+   <property name="geometry">
+    <rect>
+     <x>130</x>
+     <y>330</y>
+     <width>411</width>
+     <height>31</height>
+    </rect>
+   </property>
+   <property name="text">
+    <string>48_hour</string>
+   </property>
+  </widget>
+  <widget class="QLineEdit" name="edtUpload">
+   <property name="geometry">
+    <rect>
+     <x>130</x>
+     <y>370</y>
+     <width>411</width>
+     <height>31</height>
+    </rect>
+   </property>
+  </widget>
   <zorder>treeViewUp</zorder>
   <zorder>btnUpload</zorder>
   <zorder>btnDownload</zorder>
-  <zorder>treeViewDown</zorder>
-  <zorder>frmLogin</zorder>
   <zorder>pteConsole</zorder>
+  <zorder>pteDownload</zorder>
+  <zorder>frmLogin</zorder>
+  <zorder>btnDirectory</zorder>
+  <zorder>edtDirectory</zorder>
+  <zorder>edtUpload</zorder>
  </widget>
  <resources/>
  <connections/>
