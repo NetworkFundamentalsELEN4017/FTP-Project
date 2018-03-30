@@ -73,8 +73,11 @@ class FTPServer (threading.Thread):
         server_address = "(" + server_address + "," + str(port_number1) + "," + str(port_number2) + ")"
         data_port = (port_number1 * 256) + port_number2
         host = socket.gethostbyname(socket.gethostname())
-        self.data_connection = self.data_establish(host, data_port)
-        self.command_connection.send(("227 Entering passive mode" + str(server_address) + '\r\n').encode())
+        try:
+            self.data_connection = self.data_establish(host, data_port)
+            self.command_connection.send(("227 Entering passive mode" + str(server_address) + '\r\n').encode())
+        except socket.error:
+            self.command_connection.send(("425 Cannot open Data connection \r\n").encode())
 
     def PORT(self, argument):
         print('PORT function has been called')
@@ -87,10 +90,11 @@ class FTPServer (threading.Thread):
         print("Data Host: %s" % data_host)
         print('Data Port: %d' % data_port)
         self.data_connection = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        self.data_connection.connect((data_host, data_port))
-        # insert the negative reply here
-        self.command_connection.send(("225 Entering Active mode \r\n").encode())
-        # send 425 reply code if this connection does not get made successfully. Need to find out how to do this
+        try:
+            self.data_connection.connect((data_host, data_port))
+            self.command_connection.send(("225 Entering Active mode \r\n").encode())
+        except socket.error:
+            self.command_connection.send(("425 Cannot open Data connection \r\n").encode())
 
     def LIST(self):
         print('List code')
