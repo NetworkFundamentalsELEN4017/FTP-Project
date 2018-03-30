@@ -14,6 +14,7 @@ class FTPServer (threading.Thread):
         self.type = None
         self.isConnectionTerminated = False
         self.isActiveMode = None
+        os.getenv('HOME')
 
     def run(self):
         print("Connection from: ", str(self.address_ip))
@@ -21,7 +22,7 @@ class FTPServer (threading.Thread):
 
         while True:
             commands_available = ['USER', 'PASS', 'PASV', 'LIST', 'PWD', 'CWD', 'TYPE', 'SYST', 'RETR', 'STOR', 'NOOP',
-                                  'QUIT', 'PORT', 'DELE', 'MKD', 'RMD']
+                                  'QUIT', 'PORT', 'DELE', 'MKD', 'RMD', 'CDUP']
 
             if self.isConnectionTerminated:
                 break
@@ -47,6 +48,9 @@ class FTPServer (threading.Thread):
         if argument == "group18":
             print("Hello", argument)
             self.command_connection.send("331 Please Specify Password\r\n".encode())
+        else:
+            self.command_connection.send("530 Login incorrect\r\n".encode())
+            self.command_connection.close()
 
     def PASS(self, argument):
         if argument == "dan":
@@ -54,6 +58,7 @@ class FTPServer (threading.Thread):
             self.command_connection.send("230 Login successful\r\n".encode())
         else:
             self.command_connection.send("530 Login incorrect\r\n".encode())
+            self.command_connection.close()
 
     def PASV(self):
         print('PASV code')
@@ -83,11 +88,13 @@ class FTPServer (threading.Thread):
         print('Data Port: %d' % data_port)
         self.data_connection = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.data_connection.connect((data_host, data_port))
-        self.command_connection.send(("227 Entering Active mode \r\n").encode())
+        # insert the negative reply here
+        self.command_connection.send(("225 Entering Active mode \r\n").encode())
+        # send 425 reply code if this connection does not get made successfully. Need to find out how to do this
 
     def LIST(self):
         print('List code')
-        self.command_connection.send("150 List is here\r\n".encode())
+        self.command_connection.send("150 Beginning list transfer\r\n".encode())
 
         if not self.isActiveMode:
             data_sock, data_address = self.data_connection.accept()
@@ -123,15 +130,16 @@ class FTPServer (threading.Thread):
     def TYPE(self, argument):
             print('TYPE code')
             if argument == 'A':
-                self.command_connection.send('200 ascii mode enabled\r\n'.encode())
+                self.command_connection.send('200 ASCII mode enabled\r\n'.encode())
                 self.type = 'A'
             elif argument == 'I':
-                self.command_connection.send('200 binary mode has been set\r\n'.encode())
+                self.command_connection.send('200 binary mode enabledt\r\n'.encode())
                 self.type = 'I'
+            else:
+                self.command_connection.send('501 could not identify specified mode')
 
     def SYST(self):
-            print('SYS code')
-            self.command_connection.send("215 MAC \r\n".encode())
+        self.command_connection.send("215 MAC \r\n".encode())
 
     def RETR(self, argument):
         self.command_connection.send('150 File status okay; about to open data connection.\r\n'.encode())
@@ -258,6 +266,11 @@ class FTPServer (threading.Thread):
         else:
             self.command_connection.send('550 Could not find folder\r\n'.encode())
 
+    def CDUP(self):
+        os.chdir('..')
+        self.command_connection.send('200 Changed directory successfully \r\n'.encode())
+
+
     def QUIT(self):
             self.command_connection.send('221 Goodbye\r\n'.encode())
             self.command_connection.close()
@@ -273,7 +286,7 @@ class FTPServer (threading.Thread):
 def main():
     # Local Machine IP
     host = socket.gethostbyname(socket.gethostname())
-    port = 5001
+    port = 5000
 
     server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     server_socket.bind((host, port))
