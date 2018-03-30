@@ -3,6 +3,7 @@ import os
 from PyQt5.QtWidgets import QFileSystemModel
 from PyQt5.QtWidgets import QApplication, QDialog
 from PyQt5.uic import loadUi
+from PyQt5.QtCore import QCoreApplication
 import socket
 
 
@@ -11,8 +12,18 @@ class Login(QDialog):
         super().__init__()
         loadUi('Login.ui', self)
         self.setWindowTitle('FTP Client')
-        self.btnLogin.clicked.connect(self.onLoginButtonClicked)
+        self.components_hide();
+        self.btnLogin.clicked.connect(self.login_event)
         self.btnDirectory.clicked.connect(self.directory_change)
+
+        self.treeViewUp.clicked.connect(self.highlighted)
+        self.btnUpload.clicked.connect(self.upload_file)
+        self.btnDownload.clicked.connect(self.download_file)
+        self.btnRefresh.clicked.connect(self.refresh_directory)
+        self.btnCheck.clicked.connect(self.check_connection)
+        self.btnQuit.clicked.connect(self.quit_client)
+
+    def components_hide(self):
         self.treeViewUp.hide()
         self.pteDownload.hide()
         self.btnUpload.hide()
@@ -26,12 +37,28 @@ class Login(QDialog):
         self.lblDownload.hide()
         self.lblUpload.hide()
         self.btnRefresh.hide()
-        self.treeViewUp.clicked.connect(self.onClicked)
-        self.btnUpload.clicked.connect(self.upload_file)
-        self.btnDownload.clicked.connect(self.download_file)
-        self.btnRefresh.clicked.connect(self.refresh_directory)
+        self.btnQuit.hide()
+        self.btnCheck.hide()
 
-    def onLoginButtonClicked(self):
+    def components_show(self):
+        self.frmLogin.hide()
+        self.treeViewUp.show()
+        self.btnUpload.show()
+        self.btnDownload.show()
+        self.pteDownload.show()
+        self.btnDirectory.show()
+        self.edtDirectory.show()
+        self.lblServer.show()
+        self.lblClient.show()
+        self.edtUpload.show()
+        self.edtDownload.show()
+        self.lblDownload.show()
+        self.lblUpload.show()
+        self.btnRefresh.show()
+        self.btnQuit.show()
+        self.btnCheck.show()
+
+    def login_event(self):
         self.frmLogin.hide()
         self.model = QFileSystemModel()
 
@@ -63,7 +90,6 @@ class Login(QDialog):
         data_socket.close()
 
         directory = os.getcwd()
-        print(directory)
         self.model.setRootPath(str(directory))
 
         self.treeViewUp.setModel(self.model)
@@ -71,19 +97,7 @@ class Login(QDialog):
 
         self.treeViewUp.header().resizeSection(0, 200)
         self.treeViewUp.setWindowTitle("Dir View")
-        self.treeViewUp.show()
-        self.btnUpload.show()
-        self.btnDownload.show()
-        self.pteDownload.show()
-        self.btnDirectory.show()
-        self.edtDirectory.show()
-        self.lblServer.show()
-        self.lblClient.show()
-        self.edtUpload.show()
-        self.edtDownload.show()
-        self.lblDownload.show()
-        self.lblUpload.show()
-        self.btnRefresh.show()
+        self.components_show()
 
     def directory_change(self):
         cmd_cwd = 'CWD ' + self.edtDirectory.text() + '\r\n'
@@ -138,11 +152,10 @@ class Login(QDialog):
             data_socket = self.setup_data(response)
 
             cmd_stor = 'RETR ' + user_file_name + '\r\n'
-            #cmd_stor = 'RETR ' + 'Sloth1.jpg' + '\r\n'
             self.send_cmd(self.client_socket, cmd_stor)
 
             file_data = data_socket.recv(8192)
-            f = open(down_folder_name + "/Sloth1.jpg", 'wb')
+            f = open(down_folder_name + "/" + user_file_name, 'wb')
 
             while file_data:
                 f.write(file_data)
@@ -151,6 +164,7 @@ class Login(QDialog):
             self.pteConsole.appendPlainText(self.client_socket.recv(8192).decode())
         else:
             self.pteConsole.appendPlainText("Please select a file to download.")
+        data_socket.close()
 
     def refresh_directory(self):
 
@@ -163,16 +177,20 @@ class Login(QDialog):
         self.pteDownload.setPlainText(response)
         data_socket.close()
 
-
-    def onClicked(self, index):
+    def highlighted(self, index):
         path = self.sender().model().filePath(index)
         filename = path.split('/')[-1]
         self.edtUpload.setText(filename)
-        #self.pteConsole.appendPlainText("Selected File Path: " + path)
-        #cmd_cwd = self.edtDirectory + '\r\n'
-        #self.send_cmd(self.client_socket,cmd_cwd)
 
+    def check_connection(self):
+        cmd_noop = 'NOOP\r\n'
+        self.send_cmd(self.client_socket, cmd_noop)
 
+    def quit_client(self):
+        cmd_quit = 'QUIT\r\n'
+        self.send_cmd(self.client_socket, cmd_quit)
+        self.components_hide()
+        self.frmLogin.show()
 
     def send_cmd(self, client_socket, command):
         client_socket.send(command.encode())
@@ -182,6 +200,7 @@ class Login(QDialog):
         if command == 'LIST\r\n':
             return_message = client_socket.recv(8192).decode()
             self.pteConsole.appendPlainText("Return message: " + return_message)
+        QCoreApplication.processEvents()
         return return_message
 
     def setup_data(self, response):

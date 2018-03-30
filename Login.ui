@@ -7,7 +7,7 @@
     <x>0</x>
     <y>0</y>
     <width>1085</width>
-    <height>565</height>
+    <height>607</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -288,7 +288,7 @@
     </rect>
    </property>
    <property name="text">
-    <string>48_hour</string>
+    <string/>
    </property>
   </widget>
   <widget class="QLineEdit" name="edtUpload">
@@ -405,6 +405,32 @@
     <string>Refresh</string>
    </property>
   </widget>
+  <widget class="QPushButton" name="btnCheck">
+   <property name="geometry">
+    <rect>
+     <x>10</x>
+     <y>570</y>
+     <width>161</width>
+     <height>31</height>
+    </rect>
+   </property>
+   <property name="text">
+    <string>Check Connection</string>
+   </property>
+  </widget>
+  <widget class="QPushButton" name="btnQuit">
+   <property name="geometry">
+    <rect>
+     <x>180</x>
+     <y>570</y>
+     <width>161</width>
+     <height>31</height>
+    </rect>
+   </property>
+   <property name="text">
+    <string>Quit</string>
+   </property>
+  </widget>
   <zorder>treeViewUp</zorder>
   <zorder>btnUpload</zorder>
   <zorder>btnDownload</zorder>
@@ -420,6 +446,8 @@
   <zorder>lblUpload</zorder>
   <zorder>lblDownload</zorder>
   <zorder>btnRefresh</zorder>
+  <zorder>btnCheck</zorder>
+  <zorder>btnQuit</zorder>
  </widget>
  <resources/>
  <connections/>
