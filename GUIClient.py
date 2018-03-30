@@ -1,10 +1,11 @@
 import sys
 import os
+import random
+import socket
 from PyQt5.QtWidgets import QFileSystemModel
 from PyQt5.QtWidgets import QApplication, QDialog
 from PyQt5.uic import loadUi
 from PyQt5.QtCore import QCoreApplication
-import socket
 
 
 class Login(QDialog):
@@ -22,6 +23,7 @@ class Login(QDialog):
         self.btnRefresh.clicked.connect(self.refresh_directory)
         self.btnCheck.clicked.connect(self.check_connection)
         self.btnQuit.clicked.connect(self.quit_client)
+        self.btnReturn.clicked.connect(self.directory_return)
 
     def components_hide(self):
         self.treeViewUp.hide()
@@ -39,6 +41,7 @@ class Login(QDialog):
         self.btnRefresh.hide()
         self.btnQuit.hide()
         self.btnCheck.hide()
+        self.btnReturn.hide()
 
     def components_show(self):
         self.frmLogin.hide()
@@ -57,6 +60,7 @@ class Login(QDialog):
         self.btnRefresh.show()
         self.btnQuit.show()
         self.btnCheck.show()
+        self.btnReturn.show()
 
     def login_event(self):
         self.frmLogin.hide()
@@ -103,6 +107,25 @@ class Login(QDialog):
         cmd_cwd = 'CWD ' + self.edtDirectory.text() + '\r\n'
         self.send_cmd(self.client_socket, cmd_cwd)
 
+    def directory_return(self):
+        cmd_cdup = 'CDUP\r\n'
+        self.send_cmd(self.client_socket, cmd_cdup)
+
+    def PORT(self):
+        print('PORT code')
+        port_number1 = random.randint(47, 234)
+        port_number2 = random.randint(0, 255)
+        client_address = socket.gethostbyname(socket.gethostname())
+        client_address = client_address.split(".")
+        client_address = ','.join(client_address)
+        client_address = "(" + client_address + "," + str(port_number1) + "," + str(port_number2) + ")"
+        data_port = (port_number1 * 256) + port_number2
+        print(client_address)
+        print(data_port)
+        host = socket.gethostbyname(socket.gethostname())
+        data_connection = self.data_establish(host, data_port)
+        command_connection.send(("227 Entering passive mode" + str(client_address) + '\r\n').encode())
+
     def upload_file(self):
         user_file_name = self.edtUpload.text()
         print(user_file_name)
@@ -120,7 +143,6 @@ class Login(QDialog):
         data_socket = self.setup_data(response)
 
         cmd_stor = 'STOR ' + user_file_name + '\r\n'
-        #cmd_stor = 'STOR ' + 'Sloth1.jpg' + '\r\n'
         self.send_cmd(self.client_socket, cmd_stor)
 
         pic = open(user_file_name, 'rb')
@@ -185,6 +207,7 @@ class Login(QDialog):
     def check_connection(self):
         cmd_noop = 'NOOP\r\n'
         self.send_cmd(self.client_socket, cmd_noop)
+        self.PORT()
 
     def quit_client(self):
         cmd_quit = 'QUIT\r\n'
