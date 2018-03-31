@@ -86,15 +86,12 @@ class Login(QDialog):
         cmd_pass = 'PASS ' + password + '\r\n'
         self.send_cmd(self.client_socket, cmd_pass)
 
-        #cmd_pasv = 'PASV\r\n'
-        #response = self.send_cmd(self.client_socket, cmd_pasv)
-        #data_socket = self.setup_data(response)
         data_socket = self.setup_data()
 
         cmd_list = 'LIST\r\n'
         self.send_cmd(self.client_socket, cmd_list)
         response = data_socket.recv(8192).decode()
-        self.pteDownload.appendPlainText(response)
+        self.pteDownload.setPlainText(response)
 
         data_socket.close()
 
@@ -116,21 +113,6 @@ class Login(QDialog):
         cmd_cdup = 'CDUP\r\n'
         self.send_cmd(self.client_socket, cmd_cdup)
 
-    def PORT(self):
-        print('PORT code')
-        port_number1 = random.randint(47, 234)
-        port_number2 = random.randint(0, 255)
-        client_address = socket.gethostbyname(socket.gethostname())
-        client_address = client_address.split(".")
-        client_address = ','.join(client_address)
-        client_address = "(" + client_address + "," + str(port_number1) + "," + str(port_number2) + ")"
-        data_port = (port_number1 * 256) + port_number2
-        print(client_address)
-        print(data_port)
-        host = socket.gethostbyname(socket.gethostname())
-        data_connection = self.data_establish(host, data_port)
-        #command_connection.send(("227 Entering passive mode" + str(client_address) + '\r\n').encode())
-
     def upload_file(self):
         user_file_name = self.edtUpload.text()
         print(user_file_name)
@@ -142,10 +124,6 @@ class Login(QDialog):
             else:
                 cmd_type = 'TYPE I\r\n'
             self.send_cmd(self.client_socket, cmd_type)
-
-        #cmd_pasv = 'PASV\r\n'
-        #response = self.send_cmd(self.client_socket, cmd_pasv)
-        #data_socket = self.setup_data(response)
 
         data_socket = self.setup_data()
 
@@ -175,10 +153,6 @@ class Login(QDialog):
             else:
                 cmd_type = 'TYPE I\r\n'
             self.send_cmd(self.client_socket, cmd_type)
-
-            #cmd_pasv = 'PASV\r\n'
-            #response = self.send_cmd(self.client_socket, cmd_pasv)
-            #data_socket = self.setup_data(response)
 
             data_socket = self.setup_data()
 
@@ -234,7 +208,7 @@ class Login(QDialog):
         return return_message
 
     def setup_data(self):
-        if self.rbnPort.isChecked:
+        if self.rbnPort.isChecked():
             print("Active PORT")
             port_number1 = random.randint(47, 234)
             port_number2 = random.randint(0, 255)
@@ -243,8 +217,6 @@ class Login(QDialog):
             client_address = ','.join(client_address)
             client_address = client_address + "," + str(port_number1) + "," + str(port_number2)
             data_port = (port_number1 * 256) + port_number2
-            #print(client_address)
-            #print(data_port)
 
             host = socket.gethostbyname(socket.gethostname())
             data_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -253,7 +225,6 @@ class Login(QDialog):
 
             cmd_port = 'PORT ' + client_address + '\r\n'
             response = self.send_cmd(self.client_socket, cmd_port)
-            #print(response)
 
             data_connection, address_ip = data_socket.accept()
             return data_connection
@@ -273,8 +244,6 @@ class Login(QDialog):
             data_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
             data_socket.connect((data_host, data_port))
             return data_socket
-
-
 
 
 app = QApplication(sys.argv)
