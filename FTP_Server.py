@@ -98,7 +98,7 @@ class FTPServer (threading.Thread):
 
     def LIST(self):
         print('List code')
-        self.command_connection.send("150 Beginning list transfer\r\n".encode())
+        self.command_connection.send("150 File status okay; about to open data connection.\r\n".encode())
 
         if not self.isActiveMode:
             data_sock, data_address = self.data_connection.accept()
@@ -111,7 +111,7 @@ class FTPServer (threading.Thread):
             else:
                 self.data_connection.sendall((str(item) + '\r\n').encode())
 
-        self.command_connection.send('226 List is done transferring\r\n'.encode())
+        self.command_connection.send('226 Closing data connection. Requested transfer action successful\r\n'.encode())
         if not self.isActiveMode:
             data_sock.close()
         self.data_connection.close()
@@ -127,9 +127,9 @@ class FTPServer (threading.Thread):
         print("New path")
         if os.path.exists(path):
             os.chdir(path)
-            self.command_connection.send('250 Path successfully changed\r\n'.encode())
+            self.command_connection.send('250 Requested file action okay, completed.\r\n'.encode())
         else:
-            self.command_connection.send('550 Invalid File path\r\n'.encode())
+            self.command_connection.send('550 Requested action not taken. File/Directory unavailable\r\n'.encode())
 
     def TYPE(self, argument):
             print('TYPE code')
@@ -137,10 +137,10 @@ class FTPServer (threading.Thread):
                 self.command_connection.send('200 ASCII mode enabled\r\n'.encode())
                 self.type = 'A'
             elif argument == 'I':
-                self.command_connection.send('200 binary mode enabledt\r\n'.encode())
+                self.command_connection.send('200 binary mode enabled\r\n'.encode())
                 self.type = 'I'
             else:
-                self.command_connection.send('501 could not identify specified mode')
+                self.command_connection.send('501 Syntax error in parameters or arguments.')
 
     def SYST(self):
         self.command_connection.send("215 MAC \r\n".encode())
@@ -166,7 +166,7 @@ class FTPServer (threading.Thread):
             if not self.isActiveMode:
                 data_sock.close()
             self.data_connection.close()
-            self.command_connection.send('226 file transfer completed \r\n'.encode())
+            self.command_connection.send('226 Closing data connection. Requested transfer action successful \r\n'.encode())
             # should I close the data_connection
 
         elif self.type == 'I':
@@ -186,7 +186,7 @@ class FTPServer (threading.Thread):
             if not self.isActiveMode:
                 data_sock.close()
             self.data_connection.close()
-            self.command_connection.send('226 file transfer completed \r\n'.encode())
+            self.command_connection.send('226 Closing data connection. Requested transfer action successful \r\n'.encode())
             # should I close the data_connection
 
     def STOR(self, argument):
@@ -213,7 +213,7 @@ class FTPServer (threading.Thread):
             if not self.isActiveMode:
                 data_sock.close()
             self.data_connection.close()
-            self.command_connection.send('226 file transfer completed \r\n'.encode())
+            self.command_connection.send('226 Closing data connection. Requested transfer action successful \r\n'.encode())
             # should I close the data_connection
 
         elif self.type == 'I':
@@ -235,7 +235,7 @@ class FTPServer (threading.Thread):
             if not self.isActiveMode:
                 data_sock.close()
             self.data_connection.close()
-            self.command_connection.send('226 file transfer completed \r\n'.encode())
+            self.command_connection.send('226 Closing data connection. Requested transfer action successful \r\n'.encode())
             # should I close the data_connection
 
             file.close()
@@ -248,7 +248,7 @@ class FTPServer (threading.Thread):
         file_path = os.path.join(os.getcwd(), file_name)
         if os.path.exists(file_path):
             os.remove(file_path)
-            self.command_connection.send('250 The requested file has been deleted\r\n'.encode())
+            self.command_connection.send('250 Requested file action okay, completed.\r\n'.encode())
         else:
             self.command_connection.send('550 Could not execute delete, file not found\r\n'.encode())
 
@@ -256,7 +256,7 @@ class FTPServer (threading.Thread):
         directory_name = argument
         directory_path = os.path.join(os.getcwd(), directory_name)
         if os.path.exists(directory_path):
-            self.command_connection.send('550 Directory could not be created\r\n'.encode())
+            self.command_connection.send('550 Requested action not taken. File/Directory unavailable\r\n'.encode())
         else:
             os.makedirs(directory_path)
             self.command_connection.send('257 Folder has been successfully created\r\n'.encode())
@@ -266,9 +266,9 @@ class FTPServer (threading.Thread):
         directory_path = os.path.join(os.getcwd(), directory_name)
         if os.path.exists(directory_name):
             os.rmdir(directory_path)
-            self.command_connection.send('257 The requested folder, has been deleted \r\n'.encode())
+            self.command_connection.send('250 Requested file action okay, completed. \r\n'.encode())
         else:
-            self.command_connection.send('550 Could not find folder\r\n'.encode())
+            self.command_connection.send('550 Requested action not taken. File/Directory unavailable\r\n'.encode())
 
     def CDUP(self):
         os.chdir('..')
@@ -290,7 +290,7 @@ class FTPServer (threading.Thread):
 def main():
     # Local Machine IP
     host = socket.gethostbyname(socket.gethostname())
-    port = 5000
+    port = 21
 
     server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     server_socket.bind((host, port))
