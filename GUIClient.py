@@ -8,7 +8,7 @@ from PyQt5.uic import loadUi
 from PyQt5.QtCore import QCoreApplication
 
 
-class Login(QDialog):
+class FTP_Client(QDialog):
     def __init__(self):
         super().__init__()
         loadUi('Login.ui', self)
@@ -17,13 +17,16 @@ class Login(QDialog):
         self.btnLogin.clicked.connect(self.login_event)
         self.btnDirectory.clicked.connect(self.directory_change)
 
-        self.treeViewUp.clicked.connect(self.highlighted)
+        self.treeViewUp.clicked.connect(self.highlighted_file)
         self.btnUpload.clicked.connect(self.upload_file)
         self.btnDownload.clicked.connect(self.download_file)
         self.btnRefresh.clicked.connect(self.refresh_directory)
         self.btnCheck.clicked.connect(self.check_connection)
         self.btnQuit.clicked.connect(self.quit_client)
         self.btnReturn.clicked.connect(self.directory_return)
+        self.btnNew.clicked.connect(self.directory_create)
+        self.btnRemove.clicked.connect(self.directory_delete)
+        self.btnDelete.clicked.connect(self.delete_file)
 
     def components_hide(self):
         self.treeViewUp.hide()
@@ -44,6 +47,9 @@ class Login(QDialog):
         self.btnReturn.hide()
         self.rbnPort.hide()
         self.rbnPasv.hide()
+        self.grpClient.hide()
+        self.grpServerFile.hide()
+        self.grpServerDirect.hide()
 
     def components_show(self):
         self.frmLogin.hide()
@@ -65,6 +71,9 @@ class Login(QDialog):
         self.btnReturn.show()
         self.rbnPort.show()
         self.rbnPasv.show()
+        self.grpClient.show()
+        self.grpServerFile.show()
+        self.grpServerDirect.show()
 
     def login_event(self):
         self.frmLogin.hide()
@@ -113,6 +122,14 @@ class Login(QDialog):
         cmd_cdup = 'CDUP\r\n'
         self.send_cmd(self.client_socket, cmd_cdup)
 
+    def directory_create(self):
+        cmd_mkd = 'MKD ' + self.edtDirectory.text() + '\r\n'
+        self.send_cmd(self.client_socket, cmd_mkd)
+
+    def directory_delete(self):
+        cmd_rmd = 'RMD ' + self.edtDirectory.text() + '\r\n'
+        self.send_cmd(self.client_socket, cmd_rmd)
+
     def upload_file(self):
         user_file_name = self.edtUpload.text()
         print(user_file_name)
@@ -134,11 +151,16 @@ class Login(QDialog):
         reading = pic.read(8192)
 
         while reading:
-            print('reading file')
+            self.pteConsole.appendPlainText('Uploading file...')
             data_socket.send(reading)
             reading = pic.read(8192)
         data_socket.close()
         self.pteConsole.appendPlainText("Return message: " + self.client_socket.recv(8192).decode())
+
+    def delete_file(self):
+        user_file_name = self.edtDownload.text()
+        cmd_dele = 'DELE ' + user_file_name + '\r\n'
+        self.send_cmd(self.client_socket, cmd_dele)
 
     def download_file(self):
         down_folder_name = "Server_Downloads"
@@ -166,7 +188,7 @@ class Login(QDialog):
                 f.write(file_data)
                 file_data = data_socket.recv(8192)
 
-            self.pteConsole.appendPlainText(self.client_socket.recv(8192).decode())
+            self.pteConsole.appendPlainText("Return message" + self.client_socket.recv(8192).decode())
         else:
             self.pteConsole.appendPlainText("Please select a file to download.")
         data_socket.close()
@@ -181,7 +203,7 @@ class Login(QDialog):
         self.pteDownload.setPlainText(response)
         data_socket.close()
 
-    def highlighted(self, index):
+    def highlighted_file(self, index):
         path = self.sender().model().filePath(index)
         filename = path.split('/')[-1]
         self.edtUpload.setText(filename)
@@ -209,7 +231,6 @@ class Login(QDialog):
 
     def setup_data(self):
         if self.rbnPort.isChecked():
-            print("Active PORT")
             port_number1 = random.randint(47, 234)
             port_number2 = random.randint(0, 255)
             client_address = socket.gethostbyname(socket.gethostname())
@@ -229,7 +250,6 @@ class Login(QDialog):
             data_connection, address_ip = data_socket.accept()
             return data_connection
         else:
-            print("Passive PASV")
             cmd_pasv = 'PASV\r\n'
             response = self.send_cmd(self.client_socket, cmd_pasv)
 
@@ -247,6 +267,6 @@ class Login(QDialog):
 
 
 app = QApplication(sys.argv)
-widget = Login()
+widget = FTP_Client()
 widget.show()
 sys.exit(app.exec_())
