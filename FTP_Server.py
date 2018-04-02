@@ -2,6 +2,7 @@ import socket
 import threading
 import os
 import random
+import platform
 
 
 class FTPServer (threading.Thread):
@@ -14,7 +15,8 @@ class FTPServer (threading.Thread):
         self.type = None
         self.isConnectionTerminated = False
         self.isActiveMode = None
-        os.getenv('HOME')
+        self.cwd = os.getcwd()
+        self.user = ' '
 
     def run(self):
         print("Connection from: ", str(self.address_ip))
@@ -28,7 +30,7 @@ class FTPServer (threading.Thread):
                 break
 
             client_message = self.command_connection.recv(1024).decode()
-            print("From connected client: " + client_message)
+            print("From connected client " + self.user + ": " + client_message)
             command = client_message[:4].strip()
             argument = client_message[4:].strip()
 
@@ -45,23 +47,29 @@ class FTPServer (threading.Thread):
                 self.command_connection.send("502 Command not implemented \r\n".encode())
 
     def USER(self, argument):
-        if argument == "group18":
-            print("Hello", argument)
-            self.command_connection.send("331 Please Specify Password\r\n".encode())
+        if argument == "group18" or argument == "group19":
+            self.user = argument
+            reply = "331 Please Specify Password\r\n"
+            print('Response sent to connected client ' + self.user + ': ' + reply)
+            self.command_connection.send(reply.encode())
         else:
-            self.command_connection.send("530 Login incorrect\r\n".encode())
+            reply = "530 Login incorrect\r\n"
+            print('Response sent to connected client ' + self.user + ': ' + reply)
+            self.command_connection.send(reply.encode())
             self.command_connection.close()
 
     def PASS(self, argument):
-        if argument == "dan":
-            print("Password accepted\r\n")
-            self.command_connection.send("230 Login successful\r\n".encode())
+        if (self.user == "group18" and argument == "dan") or (self.user == "group19" and argument == "mat"):
+            reply = "230 Login successful\r\n"
+            print('Response sent to connected client ' + self.user + ': ' + reply)
+            self.command_connection.send(reply.encode())
         else:
-            self.command_connection.send("530 Login incorrect\r\n".encode())
+            reply = "530 Login incorrect\r\n"
+            print('Response sent to connected client ' + self.user + ': ' + reply)
+            self.command_connection.send(reply.encode())
             self.command_connection.close()
 
     def PASV(self):
-        print('PASV code')
         self.isActiveMode = False
         port_number1 = random.randint(47, 234)
         port_number2 = random.randint(0, 255)
@@ -75,78 +83,102 @@ class FTPServer (threading.Thread):
         host = socket.gethostbyname(socket.gethostname())
         try:
             self.data_connection = self.data_establish(host, data_port)
-            self.command_connection.send(("227 Entering passive mode" + str(server_address) + '\r\n').encode())
+            reply = "227 Entering passive mode" + str(server_address) + '\r\n'
+            print('Response sent to connected client ' + self.user + ': ' + reply)
+            self.command_connection.send(reply.encode())
         except socket.error:
-            self.command_connection.send(("425 Cannot open Data connection \r\n").encode())
+            reply = "425 Cannot open Data connection \r\n"
+            print('Response sent to connected client ' + self.user + ': ' + reply)
+            self.command_connection.send(reply.encode())
 
     def PORT(self, argument):
-        print('PORT function has been called')
+        # print('PORT function has been called')
         self.isActiveMode = True
         argument = argument.split(',')
         data_host = '.'.join(argument[0:4])
         port_number = argument[-2:]
         data_port = (int(port_number[0]) * 256) + int(port_number[1])
         data_port = int(data_port)
-        print("Data Host: %s" % data_host)
-        print('Data Port: %d' % data_port)
+        # print("Data Host: %s" % data_host)
+        # print('Data Port: %d' % data_port)
         self.data_connection = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         try:
             self.data_connection.connect((data_host, data_port))
-            self.command_connection.send(("225 Entering Active mode \r\n").encode())
+            reply = "225 Entering Active mode \r\n"
+            print('Response sent to connected client ' + self.user + ': ' + reply)
+            self.command_connection.send(reply.encode())
         except socket.error:
-            self.command_connection.send(("425 Cannot open Data connection \r\n").encode())
+            reply = "425 Cannot open Data connection \r\n"
+            print('Response sent to connected client ' + self.user + ': ' + reply)
+            self.command_connection.send(reply.encode())
 
     def LIST(self):
-        print('List code')
-        self.command_connection.send("150 File status okay; about to open data connection.\r\n".encode())
+        reply = "150 File status okay; about to open data connection.\r\n"
+        print('Response sent to connected client ' + self.user + ': ' + reply)
+        self.command_connection.send(reply.encode())
 
         if not self.isActiveMode:
             data_sock, data_address = self.data_connection.accept()
 
-        directory_list = os.listdir(os.getcwd())
+        directory_list = os.listdir(self.cwd)
         for item in directory_list:
-            print('sending: ' + str(item))
+            # Uncomment to see what list contents are being sent
+            # print('sending: ' + str(item))
             if not self.isActiveMode:
                 data_sock.sendall((str(item) + '\r\n').encode())
             else:
                 self.data_connection.sendall((str(item) + '\r\n').encode())
 
-        self.command_connection.send('226 Closing data connection. Requested transfer action successful\r\n'.encode())
+        reply = '226 Closing data connection. Requested transfer action successful\r\n'
+        print('Response sent to connected client ' + self.user + ': ' + reply)
+        self.command_connection.send(reply.encode())
+
         if not self.isActiveMode:
             data_sock.close()
         self.data_connection.close()
 
     def PWD(self):
-        print('pwd code')
-        pwd = os.getcwd()
-        self.command_connection.send(('257' + ' "' + pwd + '" ' + 'is the working directory\r\n').encode())
-        print(os.getenv('HOME'))
+        reply = '257' + ' "' + self.cwd + '" ' + 'is the working directory\r\n'
+        print('Response sent to connected client ' + self.user + ': ' + reply)
+        self.command_connection.send(reply.encode())
 
     def CWD(self, argument):
         path = argument
-        print("New path")
         if os.path.exists(path):
-            os.chdir(path)
-            self.command_connection.send('250 Requested file action okay, completed.\r\n'.encode())
+            self.cwd = path
+            reply = '250 Requested file action okay, completed.\r\n'
+            print('Response sent to connected client ' + self.user + ': ' + reply)
+            self.command_connection.send(reply.encode())
         else:
-            self.command_connection.send('550 Requested action not taken. File/Directory unavailable\r\n'.encode())
+            reply = '550 Requested action not taken. File/Directory unavailable\r\n'
+            print('Response sent to connected client ' + self.user + ': ' + reply)
+            self.command_connection.send(reply.encode())
 
     def TYPE(self, argument):
-            print('TYPE code')
             if argument == 'A':
-                self.command_connection.send('200 ASCII mode enabled\r\n'.encode())
+                reply = '200 ASCII mode enabled\r\n'
+                print('Response sent to connected client ' + self.user + ': ' + reply)
+                self.command_connection.send(reply.encode())
                 self.type = 'A'
             elif argument == 'I':
-                self.command_connection.send('200 binary mode enabled\r\n'.encode())
+                reply = '200 binary mode enabled\r\n'
+                print('Response sent to connected client ' + self.user + ': ' + reply)
+                self.command_connection.send(reply.encode())
                 self.type = 'I'
             else:
-                self.command_connection.send('501 Syntax error in parameters or arguments.')
+                reply = '501 Syntax error in parameters or arguments\r\n'
+                print('Response sent to connected client ' + self.user + ': ' + reply)
+                self.command_connection.send(reply.encode())
 
     def SYST(self):
-        self.command_connection.send("215 MAC \r\n".encode())
+        reply = "215 " + platform.system() + "\r\n"
+        print('Response sent to connected client ' + self.user + ': ' + reply)
+        self.command_connection.send(reply.encode())
 
     def RETR(self, argument):
-        self.command_connection.send('150 File status okay; about to open data connection.\r\n'.encode())
+        reply = '150 File status okay; about to open data connection.\r\n'
+        print('Response sent to connected client ' + self.user + ': ' + reply)
+        self.command_connection.send(reply.encode())
         if not self.isActiveMode:
             data_sock, data_address = self.data_connection.accept()
         filename = argument
@@ -166,7 +198,9 @@ class FTPServer (threading.Thread):
             if not self.isActiveMode:
                 data_sock.close()
             self.data_connection.close()
-            self.command_connection.send('226 Closing data connection. Requested transfer action successful \r\n'.encode())
+            reply = '226 Closing data connection. Requested transfer action successful \r\n'
+            print('Response sent to connected client ' + self.user + ': ' + reply)
+            self.command_connection.send(reply.encode())
             # should I close the data_connection
 
         elif self.type == 'I':
@@ -186,11 +220,16 @@ class FTPServer (threading.Thread):
             if not self.isActiveMode:
                 data_sock.close()
             self.data_connection.close()
-            self.command_connection.send('226 Closing data connection. Requested transfer action successful \r\n'.encode())
+            reply = '226 Closing data connection. Requested transfer action successful \r\n'
+            print('Response sent to connected client ' + self.user + ': ' + reply)
+            self.command_connection.send(reply.encode())
             # should I close the data_connection
 
     def STOR(self, argument):
-        self.command_connection.send('150 File status okay; about to open data connection.\r\n'.encode())
+        reply = '150 File status okay; about to open data connection.\r\n'
+        print('Response sent to connected client ' + self.user + ': ' + reply)
+        self.command_connection.send(reply.encode())
+
         if not self.isActiveMode:
             data_sock, data_address = self.data_connection.accept()
         filename = argument
@@ -213,7 +252,9 @@ class FTPServer (threading.Thread):
             if not self.isActiveMode:
                 data_sock.close()
             self.data_connection.close()
-            self.command_connection.send('226 Closing data connection. Requested transfer action successful \r\n'.encode())
+            reply = '226 Closing data connection. Requested transfer action successful \r\n'
+            print('Response sent to connected client ' + self.user + ': ' + reply)
+            self.command_connection.send(reply.encode())
             # should I close the data_connection
 
         elif self.type == 'I':
@@ -235,48 +276,77 @@ class FTPServer (threading.Thread):
             if not self.isActiveMode:
                 data_sock.close()
             self.data_connection.close()
-            self.command_connection.send('226 Closing data connection. Requested transfer action successful \r\n'.encode())
-            # should I close the data_connection
-
+            reply = '226 Closing data connection. Requested transfer action successful \r\n'
+            print('Response sent to connected client ' + self.user + ': ' + reply)
+            self.command_connection.send(reply.encode())
             file.close()
 
     def NOOP(self):
-        self.command_connection.send('200 NOOP OK \r\n'.encode())
+        reply = '200 NOOP OK \r\n'
+        print('Response sent to connected client ' + self.user + ': ' + reply)
+        self.command_connection.send(reply.encode())
 
     def DELE(self, argument):
         file_name = argument
-        file_path = os.path.join(os.getcwd(), file_name)
+        file_path = self.cwd + '/' + str(file_name)
         if os.path.exists(file_path):
             os.remove(file_path)
-            self.command_connection.send('250 Requested file action okay, completed.\r\n'.encode())
+            reply = '250 Requested file action okay, completed.\r\n'
+            print('Response sent to connected client ' + self.user + ': ' + reply)
+            self.command_connection.send(reply.encode())
         else:
-            self.command_connection.send('550 Could not execute delete, file not found\r\n'.encode())
+            reply = '550 Could not execute delete, file not found\r\n'
+            print('Response sent to connected client ' + self.user + ': ' + reply)
+            self.command_connection.send(reply.encode())
+
 
     def MKD(self, argument):
         directory_name = argument
-        directory_path = os.path.join(os.getcwd(), directory_name)
+        directory_path = self.cwd + '/' + str(directory_name)
         if os.path.exists(directory_path):
-            self.command_connection.send('550 Requested action not taken. File/Directory unavailable\r\n'.encode())
+            reply = '550 Requested action not taken. File/Directory unavailable\r\n'
+            print('Response sent to connected client ' + self.user + ': ' + reply)
+            self.command_connection.send(reply.encode())
         else:
             os.makedirs(directory_path)
-            self.command_connection.send('257 Folder has been successfully created\r\n'.encode())
+            reply = '257 Folder has been successfully created\r\n'
+            print('Response sent to connected client ' + self.user + ': ' + reply)
+            self.command_connection.send(reply.encode())
 
     def RMD(self, argument):
         directory_name = argument
-        directory_path = os.path.join(os.getcwd(), directory_name)
+        directory_path = self.cwd + '/' + str(directory_name)
         if os.path.exists(directory_name):
             os.rmdir(directory_path)
-            self.command_connection.send('250 Requested file action okay, completed. \r\n'.encode())
+            reply = '250 Requested file action okay, completed. \r\n'
+            print('Response sent to connected client ' + self.user + ': ' + reply)
+            print(section)
+            self.command_connection.send(reply.encode())
         else:
-            self.command_connection.send('550 Requested action not taken. File/Directory unavailable\r\n'.encode())
+            reply = '550 Requested action not taken. File/Directory unavailable\r\n'
+            print('Response sent to connected client ' + self.user + ': ' + reply)
+            print(section)
+            self.command_connection.send(reply.encode())
 
     def CDUP(self):
-        os.chdir('..')
-        self.command_connection.send('200 Changed directory successfully \r\n'.encode())
+        parent_directory = self.cwd.split('/')
+        parent_directory = parent_directory[:-1]
+        parent_directory = '/'.join(parent_directory)
 
+        if os.path.exists(parent_directory):
+            self.cwd = parent_directory
+            reply = '200 Changed directory successfully \r\n'
+            print('Response sent to connected client ' + self.user + ': ' + reply)
+            self.command_connection.send(reply.encode())
+        else:
+            reply = '550 Requested action not taken. File/Directory unavailable\r\n'
+            print('Response sent to connected client ' + self.user + ': ' + reply)
+            self.command_connection.send(reply.encode())
 
     def QUIT(self):
-            self.command_connection.send('221 Goodbye\r\n'.encode())
+            reply = '221 Goodbye\r\n'
+            print('Response sent to connected client ' + self.user + ': ' + reply)
+            self.command_connection.send(reply.encode())
             self.command_connection.close()
             self.isConnectionTerminated = True
 
@@ -290,7 +360,7 @@ class FTPServer (threading.Thread):
 def main():
     # Local Machine IP
     host = socket.gethostbyname(socket.gethostname())
-    port = 21
+    port = 5001
 
     server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     server_socket.bind((host, port))
