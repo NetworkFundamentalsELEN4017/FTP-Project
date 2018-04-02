@@ -1,13 +1,15 @@
+# FTP Server was implmented by Kavilan Nair (1076342) 
 import socket
 import threading
 import os
 import random
 import platform
 
-
+# FTP server class that inherits from the threading module
 class FTPServer (threading.Thread):
     def __init__(self, connection_socket, address_ip):
         threading.Thread.__init__(self)
+        # initialise member variables to be used later in the codde
         self.command_connection = connection_socket
         self.data_connection = None
         self.address_ip = address_ip
@@ -21,21 +23,23 @@ class FTPServer (threading.Thread):
     def run(self):
         print("Connection from: ", str(self.address_ip))
         self.command_connection.send('220 Welcome to the FTP server\r\n'.encode())
-
+        # infinite for loop to continuously preceive commands from client
         while True:
+            # commands available that have been implemented and can be used by a client
             commands_available = ['USER', 'PASS', 'PASV', 'LIST', 'PWD', 'CWD', 'TYPE', 'SYST', 'RETR', 'STOR', 'NOOP',
                                   'QUIT', 'PORT', 'DELE', 'MKD', 'RMD', 'CDUP']
 
             if self.isConnectionTerminated:
                 break
 
+            # formatting of client commands to split into command and argument
             client_message = self.command_connection.recv(1024).decode()
             print("From connected client " + self.user + ": " + client_message)
             command = client_message[:4].strip()
             argument = client_message[4:].strip()
 
             if command in commands_available:
-
+                # call function based off string supplied through client command
                 ftp_command = getattr(self, command)
 
                 if argument == '':
@@ -46,6 +50,7 @@ class FTPServer (threading.Thread):
             elif command not in commands_available:
                 self.command_connection.send("502 Command not implemented \r\n".encode())
 
+    # Function to handle USER command
     def USER(self, argument):
         if argument == "group18" or argument == "group19":
             self.user = argument
@@ -58,6 +63,7 @@ class FTPServer (threading.Thread):
             self.command_connection.send(reply.encode())
             self.command_connection.close()
 
+    # Function to handle password associated with username
     def PASS(self, argument):
         if (self.user == "group18" and argument == "dan") or (self.user == "group19" and argument == "mat"):
             reply = "230 Login successful\r\n"
@@ -69,19 +75,21 @@ class FTPServer (threading.Thread):
             self.command_connection.send(reply.encode())
             self.command_connection.close()
 
+    # Function to handle passive connection from client
     def PASV(self):
         self.isActiveMode = False
+        # Randomly generate port numbers for client to connect to
         port_number1 = random.randint(47, 234)
         port_number2 = random.randint(0, 255)
-        # port_number1 = 60
-        # port_number2 = 30
         server_address = socket.gethostbyname(socket.gethostname())
+        # string manipulation to format in appropriate
         server_address = server_address.split(".")
         server_address = ','.join(server_address)
         server_address = "(" + server_address + "," + str(port_number1) + "," + str(port_number2) + ")"
         data_port = (port_number1 * 256) + port_number2
         host = socket.gethostbyname(socket.gethostname())
         try:
+            # Attempt to establish data connection
             self.data_connection = self.data_establish(host, data_port)
             reply = "227 Entering passive mode" + str(server_address) + '\r\n'
             print('Response sent to connected client ' + self.user + ': ' + reply)
@@ -91,18 +99,18 @@ class FTPServer (threading.Thread):
             print('Response sent to connected client ' + self.user + ': ' + reply)
             self.command_connection.send(reply.encode())
 
+    # Function to handle active connection to client
     def PORT(self, argument):
-        # print('PORT function has been called')
         self.isActiveMode = True
+        # string handling
         argument = argument.split(',')
         data_host = '.'.join(argument[0:4])
         port_number = argument[-2:]
         data_port = (int(port_number[0]) * 256) + int(port_number[1])
         data_port = int(data_port)
-        # print("Data Host: %s" % data_host)
-        # print('Data Port: %d' % data_port)
         self.data_connection = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         try:
+            # Attempt to establish data connection
             self.data_connection.connect((data_host, data_port))
             reply = "225 Entering Active mode \r\n"
             print('Response sent to connected client ' + self.user + ': ' + reply)
@@ -112,6 +120,7 @@ class FTPServer (threading.Thread):
             print('Response sent to connected client ' + self.user + ': ' + reply)
             self.command_connection.send(reply.encode())
 
+    # Function to handle directory listing
     def LIST(self):
         reply = "150 File status okay; about to open data connection.\r\n"
         print('Response sent to connected client ' + self.user + ': ' + reply)
@@ -137,11 +146,13 @@ class FTPServer (threading.Thread):
             data_sock.close()
         self.data_connection.close()
 
+    # Function to obtain current working directory
     def PWD(self):
         reply = '257' + ' "' + self.cwd + '" ' + 'is the working directory\r\n'
         print('Response sent to connected client ' + self.user + ': ' + reply)
         self.command_connection.send(reply.encode())
 
+    # Function to obtain change working directory
     def CWD(self, argument):
         path = argument
         self.cwd = self.cwd + '/' + str(path)
@@ -154,6 +165,7 @@ class FTPServer (threading.Thread):
             print('Response sent to connected client ' + self.user + ': ' + reply)
             self.command_connection.send(reply.encode())
 
+    # Function to choose ASCII or Binary mode
     def TYPE(self, argument):
             if argument == 'A':
                 reply = '200 ASCII mode enabled\r\n'
@@ -170,11 +182,13 @@ class FTPServer (threading.Thread):
                 print('Response sent to connected client ' + self.user + ': ' + reply)
                 self.command_connection.send(reply.encode())
 
+    # Function to obtain the operating system
     def SYST(self):
         reply = "215 " + platform.system() + "\r\n"
         print('Response sent to connected client ' + self.user + ': ' + reply)
         self.command_connection.send(reply.encode())
 
+    # Function to download file from server
     def RETR(self, argument):
         reply = '150 File status okay; about to open data connection.\r\n'
         print('Response sent to connected client ' + self.user + ': ' + reply)
@@ -201,7 +215,6 @@ class FTPServer (threading.Thread):
             reply = '226 Closing data connection. Requested transfer action successful \r\n'
             print('Response sent to connected client ' + self.user + ': ' + reply)
             self.command_connection.send(reply.encode())
-            # should I close the data_connection
 
         elif self.type == 'I':
             file = open(filename, 'rb')
@@ -225,6 +238,7 @@ class FTPServer (threading.Thread):
             self.command_connection.send(reply.encode())
             # should I close the data_connection
 
+    # Function to upload file to server
     def STOR(self, argument):
         reply = '150 File status okay; about to open data connection.\r\n'
         print('Response sent to connected client ' + self.user + ': ' + reply)
@@ -255,7 +269,6 @@ class FTPServer (threading.Thread):
             reply = '226 Closing data connection. Requested transfer action successful \r\n'
             print('Response sent to connected client ' + self.user + ': ' + reply)
             self.command_connection.send(reply.encode())
-            # should I close the data_connection
 
         elif self.type == 'I':
             file = open(filename, 'wb')
@@ -281,11 +294,13 @@ class FTPServer (threading.Thread):
             self.command_connection.send(reply.encode())
             file.close()
 
+    # Function to check if connection is still active
     def NOOP(self):
         reply = '200 NOOP OK \r\n'
         print('Response sent to connected client ' + self.user + ': ' + reply)
         self.command_connection.send(reply.encode())
 
+    # Function to delete specific file
     def DELE(self, argument):
         file_name = argument
         file_path = self.cwd + '/' + str(file_name)
@@ -299,7 +314,7 @@ class FTPServer (threading.Thread):
             print('Response sent to connected client ' + self.user + ': ' + reply)
             self.command_connection.send(reply.encode())
 
-
+    # Function to obtain create a directory
     def MKD(self, argument):
         directory_name = argument
         directory_path = self.cwd + '/' + str(directory_name)
@@ -313,6 +328,7 @@ class FTPServer (threading.Thread):
             print('Response sent to connected client ' + self.user + ': ' + reply)
             self.command_connection.send(reply.encode())
 
+    # Function to delete specified working directory
     def RMD(self, argument):
         directory_name = argument
         directory_path = self.cwd + '/' + str(directory_name)
@@ -326,6 +342,7 @@ class FTPServer (threading.Thread):
             print('Response sent to connected client ' + self.user + ': ' + reply)
             self.command_connection.send(reply.encode())
 
+    # Function to change to parent directory
     def CDUP(self):
         print('Here')
         print(self.cwd)
@@ -344,6 +361,7 @@ class FTPServer (threading.Thread):
             print('Response sent to connected client ' + self.user + ': ' + reply)
             self.command_connection.send(reply.encode())
 
+    # Function to end FTP session
     def QUIT(self):
             reply = '221 Goodbye\r\n'
             print('Response sent to connected client ' + self.user + ': ' + reply)
@@ -351,6 +369,7 @@ class FTPServer (threading.Thread):
             self.command_connection.close()
             self.isConnectionTerminated = True
 
+    # establish data connection in passive mode
     def data_establish(self, host, port):
         data_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         data_socket.bind((host, port))
@@ -359,7 +378,7 @@ class FTPServer (threading.Thread):
 
 
 def main():
-    # Local Machine IP
+    # Local Machine IP and port
     host = socket.gethostbyname(socket.gethostname())
     port = 6000
 
@@ -368,6 +387,7 @@ def main():
     print('FTP Server initialized at ' + host)
     print("Awaiting a connection from a client")
 
+    # infinite loop to accept multiple client conenction and run them in separate threads
     while True:
         server_socket.listen(1)
         connection_socket, address_ip = server_socket.accept()

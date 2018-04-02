@@ -1,3 +1,5 @@
+# FTP Client was implemented by Iordan Tchaparov (1068874)
+
 # Imports the needed python libaries for the client program
 import sys
 import os
