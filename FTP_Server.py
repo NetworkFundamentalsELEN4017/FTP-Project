@@ -144,8 +144,8 @@ class FTPServer (threading.Thread):
 
     def CWD(self, argument):
         path = argument
-        if os.path.exists(path):
-            self.cwd = path
+        self.cwd = self.cwd + '/' + str(path)
+        if os.path.exists(self.cwd):
             reply = '250 Requested file action okay, completed.\r\n'
             print('Response sent to connected client ' + self.user + ': ' + reply)
             self.command_connection.send(reply.encode())
@@ -181,7 +181,7 @@ class FTPServer (threading.Thread):
         self.command_connection.send(reply.encode())
         if not self.isActiveMode:
             data_sock, data_address = self.data_connection.accept()
-        filename = argument
+        filename = self.cwd + '/' + argument
         if self.type == 'A':
             file = open(filename, 'r')
             reading = file.read(8192)
@@ -232,7 +232,7 @@ class FTPServer (threading.Thread):
 
         if not self.isActiveMode:
             data_sock, data_address = self.data_connection.accept()
-        filename = argument
+        filename = self.cwd + '/' + argument
         if self.type == 'A':
             file = open(filename, 'w')
             if not self.isActiveMode:
@@ -320,18 +320,19 @@ class FTPServer (threading.Thread):
             os.rmdir(directory_path)
             reply = '250 Requested file action okay, completed. \r\n'
             print('Response sent to connected client ' + self.user + ': ' + reply)
-            print(section)
             self.command_connection.send(reply.encode())
         else:
             reply = '550 Requested action not taken. File/Directory unavailable\r\n'
             print('Response sent to connected client ' + self.user + ': ' + reply)
-            print(section)
             self.command_connection.send(reply.encode())
 
     def CDUP(self):
+        print('Here')
+        print(self.cwd)
         parent_directory = self.cwd.split('/')
         parent_directory = parent_directory[:-1]
         parent_directory = '/'.join(parent_directory)
+        print(parent_directory)
 
         if os.path.exists(parent_directory):
             self.cwd = parent_directory
@@ -360,7 +361,7 @@ class FTPServer (threading.Thread):
 def main():
     # Local Machine IP
     host = socket.gethostbyname(socket.gethostname())
-    port = 5001
+    port = 6000
 
     server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     server_socket.bind((host, port))
